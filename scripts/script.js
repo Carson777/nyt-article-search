@@ -1,5 +1,5 @@
-var NYT_API = "a30a58a6e722476eb77532b42ca43c9b", // Your api code here to be used in URL
-	containerNode = document.querySelector(".container") // Select container div
+var NYT_API_KEY = "a30a58a6e722476eb77532b42ca43c9b", // Your api code here to be used in URL
+	containerNode = document.querySelector(".news-container") // Select container div
 
 // //helper functions  - SAMPLE CODE ONLY, NOT USED IN PROJECT
 // var makeParamString = function(inputObj){
@@ -28,24 +28,30 @@ var ArticleCollection = Backbone.Collection.extend({  // Use this exact syntax. 
 })
 
 //VIEWS
-var displayHomepage = function(collection){
-	var models = collection.models, // models is a property of the collection object (fetched from the parsed location)
-	htmlString = "<div class='article-container'>" // opens the article container div
+var HomeView = Backbone.View.extend({
+	el: document.querySelector(".news-container"),
+	num: 7,
+	_render: function(){
+		console.log(this)
+		var articles = this.collection.models
+		console.log(articles)
+		var tempString = ""
+		for(var i = 0; i < articles.length; i++) {
+			var articleModel = articles[i]
+			var headline = articleModel.get("headline").name? articleModel.get("headline").name: articleModel.get("headline").main
+			tempString += "<h3>" + headline + "</h3>"
 
-	console.log(models[0]) // simple test to visualize a single model from the data (not required)
-	for(var i = 0; i < models.length; i++){ // loop-de-loop
-
-		var headline = models[i].get("headline").main ? models[i].get("headline").main : models[i].get("headline").name
-		// ternary statment ( if the .main property exists ? headline becomes .main : else headline becomes .name )
-		
-		htmlString += "<div class='article'>" //  opens the individual article div
-		htmlString += 	"<h3>" + headline + "</h3>" // add the headline as an h3
-		htmlString += "</div>" // closes the individual article div
+		}
+		this.el.innerHTML = tempString
+	},
+	initialize: function(){
+		console.log(this)
+		console.log("making a new view")
+		var boundRender = this._render.bind(this) //creates a new function in which THIS is bound to its current context
+		this.collection.on("sync", boundRender) //on is basically the same as addEventListener
+		// this.collection.on('sync',this._render)
 	}
-	htmlString += "</div>" // closes the article container div
-	containerNode.innerHTML = htmlString // writes the results to our containerNode
-}
-
+})
 //CONTROLLER
 // create a Backbone Router Constructor (First letter Capitilized - ex. Controller).
 var Controller = Backbone.Router.extend({ // Use this exact syntax. Accesses "Router" Constructor specific to Backbone and uses extend method from Router constructor
@@ -56,12 +62,19 @@ var Controller = Backbone.Router.extend({ // Use this exact syntax. Accesses "Ro
 	},
 	handleHome: function(){
 		console.log("Welcome home") // simple test to ensure handleHome is invoked (not required)
-		var articleCollection = new ArticleCollection(), // this creates an instance of the ArticleCollection constructor
-			promise = articleCollection.fetch() // invokes Backbone fetch method which requests data from url in ArticleCollection constructor seen above (line 21) assigns return value to variable promise
-		
-		// below is the shortcut version of promise.then(dataHandler) where dataHandler was previously a standalone function; now we're replacing dataHandler with an anonymous function
-		promise.then(function(){ // when the data is returned respond by invoking an anonymous function ( a function not assigned to a variable like `var myFunc = function(){}` )
-			displayHomepage(articleCollection) // with the fetched data (now in our articleCollection object) invoke displayHomepage
+		//create a new collection
+		var articleCollection = new ArticleCollection() // this creates an instance of the ArticleCollection constructor
+
+		//create a new view to display the collections data
+		var view = new HomeView({
+			collection: articleCollection
+		})
+
+		//fetch the data and let the view automatically render it
+		articleCollection.fetch({
+			data: {
+				"api-key": NYT_API_KEY
+			}
 		})
 	},
 	handleSearch: function(term){ // this method was not completed in class
